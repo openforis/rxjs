@@ -11,6 +11,7 @@ node_modules/
 typings/
 
 # Generated
+# dist
 dist-compat/
 tmp/
 coverage/
@@ -21,11 +22,11 @@ spec-build/
 .tmp/
 
 # Import location artifacts
-/ajax/
-/fetch/
-/operators/
-/testing/
-/webSocket/
+# /ajax/
+# /fetch/
+# /operators/
+# /testing/
+# /webSocket/
 
 # Misc
 npm-debug.log
