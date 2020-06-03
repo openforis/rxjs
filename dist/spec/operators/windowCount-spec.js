@@ -1,0 +1,122 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var marble_testing_1 = require("../helpers/marble-testing");
+var operators_1 = require("rxjs/operators");
+var rxjs_1 = require("rxjs");
+describe('windowCount operator', function () {
+    it('should emit windows with count 3, no skip specified', function () {
+        var source = marble_testing_1.hot('---a---b---c---d---e---f---g---h---i---|');
+        var sourceSubs = '^                                      !';
+        var expected = 'x----------y-----------z-----------w---|';
+        var x = marble_testing_1.cold('---a---b---(c|)                         ');
+        var y = marble_testing_1.cold('----d---e---(f|)             ');
+        var z = marble_testing_1.cold('----g---h---(i|) ');
+        var w = marble_testing_1.cold('----|');
+        var expectedValues = { x: x, y: y, z: z, w: w };
+        var result = source.pipe(operators_1.windowCount(3));
+        marble_testing_1.expectObservable(result).toBe(expected, expectedValues);
+        marble_testing_1.expectSubscriptions(source.subscriptions).toBe(sourceSubs);
+    });
+    it('should emit windows with count 2 and skip 1', function () {
+        var source = marble_testing_1.hot('^-a--b--c--d--|');
+        var subs = '^             !';
+        var expected = 'u-v--x--y--z--|';
+        var u = marble_testing_1.cold('--a--(b|)      ');
+        var v = marble_testing_1.cold('---b--(c|)   ');
+        var x = marble_testing_1.cold('---c--(d|)');
+        var y = marble_testing_1.cold('---d--|');
+        var z = marble_testing_1.cold('---|');
+        var values = { u: u, v: v, x: x, y: y, z: z };
+        var result = source.pipe(operators_1.windowCount(2, 1));
+        marble_testing_1.expectObservable(result).toBe(expected, values);
+        marble_testing_1.expectSubscriptions(source.subscriptions).toBe(subs);
+    });
+    it('should emit windows with count 2, and skip unspecified', function () {
+        var source = marble_testing_1.hot('--a--b--c--d--e--f--|');
+        var subs = '^                   !';
+        var expected = 'x----y-----z-----w--|';
+        var x = marble_testing_1.cold('--a--(b|)            ');
+        var y = marble_testing_1.cold('---c--(d|)      ');
+        var z = marble_testing_1.cold('---e--(f|)');
+        var w = marble_testing_1.cold('---|');
+        var values = { x: x, y: y, z: z, w: w };
+        var result = source.pipe(operators_1.windowCount(2));
+        marble_testing_1.expectObservable(result).toBe(expected, values);
+        marble_testing_1.expectSubscriptions(source.subscriptions).toBe(subs);
+    });
+    it('should return empty if source is empty', function () {
+        var source = marble_testing_1.cold('|');
+        var subs = '(^!)';
+        var expected = '(w|)';
+        var w = marble_testing_1.cold('|');
+        var values = { w: w };
+        var result = source.pipe(operators_1.windowCount(2, 1));
+        marble_testing_1.expectObservable(result).toBe(expected, values);
+        marble_testing_1.expectSubscriptions(source.subscriptions).toBe(subs);
+    });
+    it('should return Never if source if Never', function () {
+        var source = marble_testing_1.cold('-');
+        var subs = '^';
+        var expected = 'w';
+        var w = marble_testing_1.cold('-');
+        var expectedValues = { w: w };
+        var result = source.pipe(operators_1.windowCount(2, 1));
+        marble_testing_1.expectObservable(result).toBe(expected, expectedValues);
+        marble_testing_1.expectSubscriptions(source.subscriptions).toBe(subs);
+    });
+    it('should propagate error from a just-throw source', function () {
+        var source = marble_testing_1.cold('#');
+        var subs = '(^!)';
+        var expected = '(w#)';
+        var w = marble_testing_1.cold('#');
+        var expectedValues = { w: w };
+        var result = source.pipe(operators_1.windowCount(2, 1));
+        marble_testing_1.expectObservable(result).toBe(expected, expectedValues);
+        marble_testing_1.expectSubscriptions(source.subscriptions).toBe(subs);
+    });
+    it('should raise error if source raises error', function () {
+        var source = marble_testing_1.hot('--a--b--c--d--e--f--#');
+        var subs = '^                   !';
+        var expected = 'u-v--w--x--y--z--q--#';
+        var u = marble_testing_1.cold('--a--b--(c|)         ');
+        var v = marble_testing_1.cold('---b--c--(d|)      ');
+        var w = marble_testing_1.cold('---c--d--(e|)   ');
+        var x = marble_testing_1.cold('---d--e--(f|)');
+        var y = marble_testing_1.cold('---e--f--#');
+        var z = marble_testing_1.cold('---f--#');
+        var q = marble_testing_1.cold('---#');
+        var values = { u: u, v: v, w: w, x: x, y: y, z: z, q: q };
+        var result = source.pipe(operators_1.windowCount(3, 1));
+        marble_testing_1.expectObservable(result).toBe(expected, values);
+        marble_testing_1.expectSubscriptions(source.subscriptions).toBe(subs);
+    });
+    it('should dispose of inner windows once outer is unsubscribed early', function () {
+        var source = marble_testing_1.hot('^-a--b--c--d--|');
+        var subs = '^        !     ';
+        var expected = 'w-x--y--z-     ';
+        var w = marble_testing_1.cold('--a--(b|)      ');
+        var x = marble_testing_1.cold('---b--(c|)   ');
+        var y = marble_testing_1.cold('---c-     ');
+        var z = marble_testing_1.cold('--     ');
+        var unsub = '         !     ';
+        var values = { w: w, x: x, y: y, z: z };
+        var result = source.pipe(operators_1.windowCount(2, 1));
+        marble_testing_1.expectObservable(result, unsub).toBe(expected, values);
+        marble_testing_1.expectSubscriptions(source.subscriptions).toBe(subs);
+    });
+    it('should not break unsubscription chains when result is unsubscribed explicitly', function () {
+        var source = marble_testing_1.hot('^-a--b--c--d--|');
+        var subs = '^        !     ';
+        var expected = 'w-x--y--z-     ';
+        var w = marble_testing_1.cold('--a--(b|)      ');
+        var x = marble_testing_1.cold('---b--(c|)   ');
+        var y = marble_testing_1.cold('---c-     ');
+        var z = marble_testing_1.cold('--     ');
+        var unsub = '         !     ';
+        var values = { w: w, x: x, y: y, z: z };
+        var result = source.pipe(operators_1.mergeMap(function (x) { return rxjs_1.of(x); }), operators_1.windowCount(2, 1), operators_1.mergeMap(function (x) { return rxjs_1.of(x); }));
+        marble_testing_1.expectObservable(result, unsub).toBe(expected, values);
+        marble_testing_1.expectSubscriptions(source.subscriptions).toBe(subs);
+    });
+});
+//# sourceMappingURL=windowCount-spec.js.map
