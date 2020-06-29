@@ -11,13 +11,8 @@ node_modules/
 typings/
 
 # Generated
-<<<<<<< HEAD
 # dist
 dist-compat/
-=======
-/dist/
-/dist-compat/
->>>>>>> upstream/master
 tmp/
 coverage/
 img/
